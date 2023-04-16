@@ -38,7 +38,7 @@ async fn process_file(
     let file_attributes = fs::metadata(original_path).await?;
     let creation_time: DateTime<Utc> = file_attributes.created()?.into();
 
-    log::debug!("start processing file {}", original_path.clone().display());
+    log::debug!("start processing file {}", <&Path>::clone(&original_path).display());
 
     let extension = original_path
         .extension()
@@ -114,9 +114,8 @@ pub async fn main() -> anyhow::Result<()> {
         .map(|path| process_file(&dest_dir, path))
         .buffer_unordered(6)
         .for_each(|res| async {
-            match res {
-                Err(e) => log::error!("failed to move file: {}", e),
-                _ => (),
+            if let Err(e) = res {
+                log::error!("failed to move file: {}", e);
             }
         })
         .await;

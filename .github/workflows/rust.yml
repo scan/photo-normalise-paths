@@ -10,20 +10,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  lint_and_test:
+    permissions:
+      checks: write
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
+      name: Checkout
     - uses: actions-rs/toolchain@v1
+      name: Install toolchain
       with:
         toolchain: stable
         components: clippy
+    - uses: actions-rs/cargo@v1
+      name: Check build integrity
+      with:
+        command: check
     - uses: actions-rs/clippy-check@v1
+      name: Lint
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         args: --all-features
     - uses: actions-rs/cargo@v1
+      name: Test
       with:
         command: test
