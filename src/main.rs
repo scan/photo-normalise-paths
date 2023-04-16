@@ -1,8 +1,9 @@
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Datelike, Utc, Month};
 use clap::Parser;
 use futures::{stream, StreamExt};
 use std::path::{Path, PathBuf};
 use tokio::fs;
+use num_traits::cast::FromPrimitive;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -48,13 +49,14 @@ async fn process_file(
 
     let year = creation_time.year();
     let month = creation_time.month();
+    let month_name = Month::from_u32(month);
     let day = creation_time.day();
 
     let final_dir = destination_path
         .as_ref()
         .join(year.to_string())
-        .join(format!("{:0>2}", month))
-        .join(format!("{:0>2}", day));
+        .join(format!("{:0>2} - {}", month, month_name.map_or("Unknown", |m| m.name())))
+        .join(format!("{:0>4}-{:0>2}-{:0>2}", year, month, day));
     let final_path = final_dir.join(new_file_name.file_name().unwrap_or_default());
 
     log::debug!("determined target path: {}", final_path.display());
