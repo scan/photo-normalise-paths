@@ -1,9 +1,9 @@
-use chrono::{DateTime, Datelike, Utc, Month};
+use chrono::{DateTime, Datelike, Month, Utc};
 use clap::Parser;
 use futures::{stream, StreamExt};
+use num_traits::cast::FromPrimitive;
 use std::path::{Path, PathBuf};
 use tokio::fs;
-use num_traits::cast::FromPrimitive;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -38,7 +38,10 @@ async fn process_file(
     let file_attributes = fs::metadata(original_path).await?;
     let creation_time: DateTime<Utc> = file_attributes.created()?.into();
 
-    log::debug!("start processing file {}", <&Path>::clone(&original_path).display());
+    log::debug!(
+        "start processing file {}",
+        <&Path>::clone(&original_path).display()
+    );
 
     let extension = original_path
         .extension()
@@ -55,7 +58,11 @@ async fn process_file(
     let final_dir = destination_path
         .as_ref()
         .join(year.to_string())
-        .join(format!("{:0>2} - {}", month, month_name.map_or("Unknown", |m| m.name())))
+        .join(format!(
+            "{:0>2} - {}",
+            month,
+            month_name.map_or("Unknown", |m| m.name())
+        ))
         .join(format!("{:0>4}-{:0>2}-{:0>2}", year, month, day));
     let final_path = final_dir.join(new_file_name.file_name().unwrap_or_default());
 
@@ -65,8 +72,28 @@ async fn process_file(
         fs::create_dir_all(&final_dir).await?;
     }
 
-    log::info!("moving file {} to {}", original_path.display(), final_path.display());
+    log::info!(
+        "moving file {} to {}",
+        original_path.display(),
+        final_path.display()
+    );
     fs::rename(original_path, final_path).await?;
+
+    for ext in vec!["dop", "xmp"] {
+        let fpath = PathBuf::from(format!(
+            "{}.{}",
+            <&Path>::clone(&original_path).display(),
+            ext
+        ));
+
+        if fs::try_exists(&fpath).await? {
+            fs::rename(
+                &fpath,
+                final_dir.join(fpath.file_name().unwrap_or_default()),
+            )
+            .await?;
+        }
+    }
 
     Ok(())
 }
