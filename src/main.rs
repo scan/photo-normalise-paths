@@ -82,14 +82,22 @@ async fn process_file(
     for ext in vec!["dop", "xmp"] {
         let fpath = PathBuf::from(format!(
             "{}.{}",
-            <&Path>::clone(&original_path).display(),
+            new_file_name.display(),
             ext
         ));
 
         if fs::try_exists(&fpath).await? {
+            let npath = final_dir.join(fpath.file_name().unwrap_or_default());
+            
+            log::info!(
+                "also moving metadata file {} to {}",
+                fpath.display(),
+                npath.display()
+            );
+            
             fs::rename(
                 &fpath,
-                final_dir.join(fpath.file_name().unwrap_or_default()),
+                &npath,
             )
             .await?;
         }
