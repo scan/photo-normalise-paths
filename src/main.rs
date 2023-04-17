@@ -33,15 +33,12 @@ async fn process_file(
     destination_path: impl AsRef<Path>,
     original_path: PathBuf,
 ) -> anyhow::Result<()> {
-    let original_path: &Path = original_path.as_path();
+    let original_path = PathBuf::from(original_path.as_path());
 
-    let file_attributes = fs::metadata(original_path).await?;
+    let file_attributes = fs::metadata(&original_path).await?;
     let creation_time: DateTime<Utc> = file_attributes.created()?.into();
 
-    log::debug!(
-        "start processing file {}",
-        <&Path>::clone(&original_path).display()
-    );
+    log::debug!("start processing file {}", original_path.display());
 
     let extension = original_path
         .extension()
@@ -80,26 +77,18 @@ async fn process_file(
     fs::rename(original_path, final_path).await?;
 
     for ext in vec!["dop", "xmp"] {
-        let fpath = PathBuf::from(format!(
-            "{}.{}",
-            new_file_name.display(),
-            ext
-        ));
+        let fpath = PathBuf::from(format!("{}.{}", new_file_name.display(), ext));
 
         if fs::try_exists(&fpath).await? {
             let npath = final_dir.join(fpath.file_name().unwrap_or_default());
-            
+
             log::info!(
                 "also moving metadata file {} to {}",
                 fpath.display(),
                 npath.display()
             );
-            
-            fs::rename(
-                &fpath,
-                &npath,
-            )
-            .await?;
+
+            fs::rename(&fpath, &npath).await?;
         }
     }
 
